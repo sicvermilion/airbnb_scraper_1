@@ -66,7 +66,7 @@ class AirbnbScraper:
                             "smart_location": listing['smart_location'],
                             "reviews_count": listing['reviews_count'],
                             "user_name": listing['user']['user']['first_name'],
-                            "url": "https://www.airbnb.com/rooms/" + listing['id'],
+                            "url": "https://www.airbnb.com/rooms/" + str(listing['id']),
                             "date_added": time.strftime('%Y-%m-%d %H:%M:%S')
                         }
                         list_arr.append(list_off)
