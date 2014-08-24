@@ -1,25 +1,85 @@
-import scraperwiki
-import requests
+import codecs
+import json
+import random
+import sys
+import time
+
 import lxml.html
+import requests
+import scraperwiki
 
-r = requests.get("https://www.airbnb.co.uk/s/Stockholm--Sweden?page=1", verify=False)
-dom = lxml.html.fromstring(r.text)
-targetList = dom.cssselect('.search_result a.name')
-ads = []
 
-for result in targetList:
-    ad = {
-        "title": result.text_content(),
-        "url": result.get("href")
-    }
-    ads.append(ad)
+class AirbnbScraper:
+    def __init__(self, debug=True):
+        self.cookies = {}
+        self.debug = debug
 
-for theAd in ads:
-    r2 = requests.get("https://airbnb.co.uk" + theAd["url"], verify=False)
-    dom2 = lxml.html.fromstring(r2.text)
+    def listing_url(self, offset):
+        return ('https://m.airbnb.com/api/-/v1/listings/search?location=semarang&number_of_guests=1&offset=%s&guests=1&items_per_page=20'
+                % (offset))
 
-    value = dom2.cssselect("#price_amount")[0].text_content()
-    key = "price"
-    theAd[key] = value
+    def get(self, url, referer='', min_sleep=30, max_add=120, xhr=False):
+        if self.debug:
+            print url
 
-scraperwiki.sqlite.save(["url"], ads)
+        time.sleep(random.randint(0, max_add) + min_sleep)
+
+        headers = {'User-agent': 'Mozilla/5.0 (Linux; U; Android 2.3; en-us) AppleWebKit/999+ (KHTML, like Gecko) Safari/999.9',
+                   'referer': referer}
+        if xhr:
+            headers['x-requested-with'] = 'XMLHttpRequest'
+
+        r = requests.get(url, headers=headers, cookies=self.cookies)
+        self.cookies = r.cookies
+
+        return r
+
+    def crawl(self):
+        offset = 0
+        count = 999
+        while offset < count:
+            r = self.get(self.listing_url(offset), referer='https://m.airbnb.com/s/semarang')
+            list_arr = []
+
+            try:
+                js = json.loads(r.content)
+                count = js['listings_count']
+
+                if len(js['listings']) == 0:
+                    break
+                else:
+                    for listing in js['listings']:
+                        list_off = {
+                            "id": listing['id'],
+                            "city": listing['city'],
+                            "picture_url": listing['picture_url'],
+                            "user_id": listing['user_id'],
+                            "price": listing['price'],
+                            "price_native": listing['price_native'],
+                            "lat": listing['lat'],
+                            "lng": listing['lng'],
+                            "name": listing['name'],
+                            "address": listing['address'],
+                            "property_type": listing['property_type'],
+                            "room_type_category": listing['room_type_category'],
+                            "smart_location": listing['smart_location'],
+                            "reviews_count": listing['reviews_count'],
+                            "user_name": listing['user']['user']['first_name'],
+                            "url": "https://www.airbnb.com/rooms/" + listing['id'],
+                            "date_added": time.strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        list_arr.append(list_off)
+                        
+                offset += 20
+                scraperwiki.sqlite.save(["id"],list_arr)
+                if self.debug:
+                    print "new offset", offset
+
+            except ValueError as e:
+                print >> sys.stderr, 'received ValueError:', e
+                print >> sys.stderr, 'error: could not parse response'
+                sys.exit(1)
+
+if __name__ == "__main__":
+    ab = AirbnbScraper()
+    ab.crawl()
