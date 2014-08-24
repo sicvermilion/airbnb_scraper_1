@@ -37,6 +37,7 @@ class AirbnbScraper:
     def crawl(self):
         price_min = 0
         while price_min < 401:
+            
             if price_min == 400:
                 price_max = 9999
             else:
@@ -73,7 +74,7 @@ class AirbnbScraper:
                                 "smart_location": listing['smart_location'],
                                 "reviews_count": listing['reviews_count'],
                                 "user_name": listing['user']['user']['first_name'],
-                                "bedsroom": listing['bedsroom'],
+                                "bedrooms": listing['bedrooms'],
                                 "url": "https://www.airbnb.com/rooms/" + str(listing['id']),
                                 "date_added": time.strftime('%Y-%m-%d %H:%M:%S')
                             }
