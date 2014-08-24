@@ -48,7 +48,8 @@ class AirbnbScraper:
                 if len(js['listings']) == 0:
                     break
                 else:
-                    for listing in js['listings']:
+                    for listing1 in js['listings']:
+                        listing = listing1['listing']
                         list_off = {
                             "id": listing['id'],
                             "city": listing['city'],
